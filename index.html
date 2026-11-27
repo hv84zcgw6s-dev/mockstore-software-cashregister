@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>模擬店レジ</title>
+<style>
+:root{--bg:#f4f1ea;--card:#fff;--text:#222;--sub:#777;--accent:#e4572e;--ok:#2e9e5b;--line:#ddd6c8;--chip:#efe9dc;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1b19;--card:#2a2926;--text:#f2efe8;--sub:#a49f94;--accent:#ff7a52;--ok:#4cc27e;--line:#46433d;--chip:#37352f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1c1b19;--card:#2a2926;--text:#f2efe8;--sub:#a49f94;--accent:#ff7a52;--ok:#4cc27e;--line:#46433d;--chip:#37352f;color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif}
+button{font:inherit;color:inherit;border:0;border-radius:14px;background:var(--chip);cursor:pointer;touch-action:manipulation}
+button:active{transform:scale(.96)}
+header{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+header h1{font-size:18px;margin:0;flex:1}
+.tab{padding:12px 18px;font-weight:700;font-size:16px}
+.tab.on{background:var(--accent);color:#fff}
+main{padding:14px 16px 40px;max-width:1280px;margin:0 auto}
+.reg{display:grid;grid-template-columns:1fr 400px;gap:14px}
+@media(max-width:860px){.reg{grid-template-columns:1fr}}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;align-content:start}
+.item{min-height:128px;padding:10px;background:var(--card);border:2px solid var(--line);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;position:relative}
+.item b{font-size:22px;line-height:1.25;text-align:center}
+.item span{color:var(--sub);font-size:18px}
+.item i{font-style:normal;font-size:12px;background:var(--chip);border-radius:99px;padding:2px 10px;color:var(--sub)}
+.badge{position:absolute;top:-9px;right:-7px;background:var(--accent);color:#fff;border-radius:99px;min-width:34px;height:34px;line-height:34px;font-weight:800;font-size:18px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;align-self:start;position:sticky;top:76px}
+.line{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.chips{width:100%;display:flex;flex-wrap:wrap;gap:8px}
+.chip{flex:1 1 40%;min-height:56px;padding:12px 10px;font-weight:700;font-size:18px;border:2px solid var(--line);background:var(--card)}
+.line.top{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:10px;margin:8px 0}
+.cell{position:relative;display:flex;flex-direction:column;gap:6px}
+.cell .item{flex:1}
+.item.sel{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent) inset}
+.selbox{border:2px solid var(--accent);border-radius:14px;padding:12px;margin-bottom:14px}
+.selbox .qty{margin:10px 0}
+.selbox .qty .q{width:60px;height:60px;font-size:30px}
+.selbox .qty b{font-size:40px}
+.quick{display:flex;flex-wrap:wrap;gap:6px}
+.quick button{flex:1 1 40%;padding:14px 6px;font-weight:700;font-size:16px;border:2px solid var(--accent);background:var(--card);color:var(--accent)}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.line .n{flex:1;font-weight:700;font-size:17px}
+.q{width:52px;height:52px;font-size:28px;font-weight:700}
+.qn{min-width:34px;text-align:center;font-size:24px;font-weight:800}
+.total{display:flex;justify-content:space-between;align-items:baseline;font-size:38px;font-weight:900;margin:14px 0 12px}
+.big{width:100%;padding:22px;font-size:24px;font-weight:800;background:var(--ok);color:#fff}
+.big:disabled{opacity:.35}
+.sub{background:transparent;border:1px solid var(--line);padding:10px 14px}
+input{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;width:100%}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.row{display:flex;gap:8px;align-items:center;margin:8px 0}
+.row input.p{width:110px;flex:none}
+.tr{margin-left:24px}
+.danger{background:#c0392b;color:#fff;padding:10px 14px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+.stat small{color:var(--sub)}.stat div{font-size:28px;font-weight:800}
+.muted{color:var(--sub);font-size:14px}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:20;padding:20px}
+.box{background:var(--card);border-radius:22px;padding:22px;width:min(460px,100%);max-height:90vh;overflow:auto}
+.box h2{margin:0 0 12px;font-size:24px}
+.tops{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.tt{padding:16px 8px;font-weight:700;font-size:18px;border:2px solid var(--line);background:var(--bg)}
+.tt.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tt small{display:block;font-weight:400;opacity:.8}
+.qty{display:flex;justify-content:center;align-items:center;gap:22px;margin:16px 0}
+.qty .q{width:70px;height:70px;font-size:36px}.qty b{font-size:48px;min-width:60px;text-align:center}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#222;color:#fff;border-radius:99px;padding:10px 12px 10px 22px;display:flex;gap:14px;align-items:center;z-index:30;font-weight:700}
+.toast button{background:#555;color:#fff;padding:10px 16px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">模擬店レジ</h1>
+  <button class="tab on" data-tab="reg">レジ</button>
+  <button class="tab" data-tab="hist">履歴・集計</button>
+  <button class="tab" data-tab="set">商品設定</button>
+</header>
+<main>
+  <section id="reg" class="reg"></section>
+  <section id="hist" class="hide"></section>
+  <section id="set" class="hide"></section>
+</main>
+<div id="ov" class="ov hide"></div>
+<div id="toast" class="toast hide"></div>
+<script>
+(function(){
+var KEY="mogiten-register-v1";
+var S={shop:"模擬店レジ",unit:"円",items:[{id:1,name:"たこ焼き",price:400,tops:[{id:11,name:"ソース多め",price:0},{id:12,name:"マヨネーズ",price:50}]},{id:2,name:"ドリンク",price:200,tops:[]}],sales:[],nid:100};
+try{var r=localStorage.getItem(KEY);if(r){var o=JSON.parse(r);if(o&&o.items)S=o;}}catch(e){}
+S.unit="円";S.nid=S.nid||100;S.items.forEach(function(i){i.tops=i.tops||[];});
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+var cart=[],tab="reg",arm=null,mod=null,tt=null,lastId=null,pick=null;
+function $(i){return document.getElementById(i);}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+function m(n){return "¥"+Number(n).toLocaleString("ja-JP");}
+function pad(n){return n<10?"0"+n:""+n;}
+function ts(t){var d=new Date(t);return pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds());}
+function item(id){return S.items.filter(function(i){return i.id==id;})[0];}
+function unitPrice(it,ids){var p=it.price;it.tops.forEach(function(t){if(ids.indexOf(t.id)>=0)p+=t.price;});return p;}
+function total(){return cart.reduce(function(a,c){var it=item(c.id);return a+(it?unitPrice(it,c.tops)*c.qty:0);},0);}
+function addCart(id,tops,qty){tops=tops.slice().sort(function(a,b){return a-b;});
+  var f=cart.filter(function(c){return c.id==id&&c.tops.join()===tops.join();})[0];
+  if(f)f.qty+=qty;else cart.push({id:id,tops:tops,qty:qty});}
+function topNames(it,ids){return it.tops.filter(function(t){return ids.indexOf(t.id)>=0;}).map(function(t){return t.name;});}
+
+function selHtml(){if(!pick)return'';var it=item(pick.id);if(!it){pick=null;return'';}
+  var tp=it.tops.map(function(x){var on=pick.sel.indexOf(x.id)>=0;return '<button class="chip'+(on?' on':'')+'" data-st="'+x.id+'">'+(on?'✓ ':'')+esc(x.name)+(x.price?' ＋'+m(x.price):'')+'</button>';}).join("");
+  return '<div class="selbox" id="sel"><div class="row"><b style="flex:1;font-size:20px">'+esc(it.name)+'</b><button class="sub" data-sx="1">閉じる</button></div><div class="muted">トッピングを選んで「追加」(選ばないとトッピングなし)</div><div class="chips" style="margin-top:8px">'+tp+'</div><div class="qty"><button class="q" data-sq="-1">−</button><b>'+pick.qty+'</b><button class="q" data-sq="1">＋</button></div><button class="big" data-sadd="1">追加('+m(unitPrice(it,pick.sel)*pick.qty)+')</button></div>';}
+function renderReg(){
+  var t=total(),lines=cart.map(function(c,k){var it=item(c.id);if(!it)return"";var sep=false;
+    var chips=sep?'<div class="chips">'+it.tops.map(function(x){return '<button class="chip'+(c.tops.indexOf(x.id)>=0?' on':'')+'" data-ct="'+k+':'+x.id+'">'+(c.tops.indexOf(x.id)>=0?'✓ ':'')+esc(x.name)+(x.price?' ＋'+m(x.price):'')+'</button>';}).join("")+'</div>':'';
+    return '<div class="line'+(sep?' top':'')+'"><div class="n">'+esc(it.name)+(c.tops.length?'<div class="muted">＋'+esc(topNames(it,c.tops).join("・"))+'</div>':'')+'<div class="muted">'+m(unitPrice(it,c.tops))+'</div></div><button class="q" data-cm="'+k+'">'+(sep?'×':'−')+'</button>'+(sep?'':'<span class="qn">'+c.qty+'</span>')+'<button class="q" data-cp="'+k+'">＋</button>'+chips+'</div>';}).join("");
+  var grid=S.items.map(function(i){var q=cart.reduce(function(a,c){return a+(c.id==i.id?c.qty:0);},0);
+    var qk=i.tops.length?'<i style="font-style:normal;font-size:12px;color:var(--sub);text-align:center">トッピングあり</i>':'';
+    return '<div class="cell">'+(q?'<div class="badge">'+q+'</div>':'')+'<button class="item'+(pick&&pick.id==i.id?' sel':'')+'" data-p="'+i.id+'"><b>'+esc(i.name)+'</b><span>'+m(i.price)+'</span></button>'+qk+'</div>';}).join("");
+  $("reg").innerHTML='<div class="grid">'+(grid||'<p class="muted">「商品設定」から商品を追加してください</p>')+'</div>'+
+  '<div class="panel">'+selHtml()+'<div>'+(lines||'<p class="muted">商品をタップして追加</p>')+'</div>'+
+  '<div class="total"><span style="font-size:18px">合計</span><span>'+m(t)+'</span></div>'+
+  '<button class="big" id="go" '+(cart.length?'':'disabled')+'>会計する</button>'+
+  '<div class="row" style="margin-top:10px"><button class="sub" id="clr" style="flex:1;padding:16px;font-weight:700">選択をすべて消す</button></div></div>';
+}
+function renderMod(){
+  var it=item(mod.id),sel=mod.sel;
+  var tp=it.tops.map(function(t){return '<button class="tt'+(sel.indexOf(t.id)>=0?' on':'')+'" data-tt="'+t.id+'">'+esc(t.name)+'<small>'+(t.price?'＋'+m(t.price):'無料')+'</small></button>';}).join("");
+  $("ov").innerHTML='<div class="box"><h2>'+esc(it.name)+'</h2><div class="muted">トッピング(複数選択OK)</div><div class="tops">'+tp+'</div>'+
+  '<div class="qty"><button class="q" data-mq="-1">−</button><b>'+mod.qty+'</b><button class="q" data-mq="1">＋</button></div>'+
+  '<button class="big" data-madd="1">カートに追加('+m(unitPrice(it,sel)*mod.qty)+')</button>'+
+  '<div class="row"><button class="sub" data-mx="1" style="flex:1">キャンセル</button></div></div>';
+  $("ov").classList.remove("hide");
+}
+function closeMod(){mod=null;$("ov").classList.add("hide");}
+function restore(s){s.lines.forEach(function(l){var it=S.items.filter(function(i){return i.name===(l.base||l.name);})[0];if(!it)return;var ids=it.tops.filter(function(t){return (l.tops||[]).indexOf(t.name)>=0;}).map(function(t){return t.id;});addCart(it.id,ids,l.qty);});}
+function group(){var g={};S.sales.forEach(function(s){s.lines.forEach(function(l){var b=l.base||l.name;g[b]=g[b]||{};var o=g[b][l.price]=g[b][l.price]||{q:0,c:{}};o.q+=l.qty;var lb=(l.tops&&l.tops.length)?l.tops.join("・"):"トッピングなし";o.c[lb]=(o.c[lb]||0)+l.qty;});});return g;}
+function perHtml(g){return Object.keys(g).map(function(k){var ps=Object.keys(g[k]).map(Number).sort(function(a,b){return a-b;}),tq=0,ta=0;
+  var rows=ps.map(function(p){var o=g[k][p];tq+=o.q;ta+=o.q*p;
+    var cs=Object.keys(o.c).map(function(c){return '<div class="muted" style="padding-left:24px">└ '+esc(c)+' '+o.c[c]+'個</div>';}).join("");
+    return '<div class="line" style="border:0;padding:6px 0 2px 12px"><div class="n" style="font-weight:600">'+m(p)+' × '+o.q+'個</div><b>'+m(p*o.q)+'</b></div>'+cs;}).join("");
+  return '<div style="padding:10px 0;border-bottom:1px solid var(--line)"><div class="line" style="border:0;padding:0"><div class="n" style="font-size:19px">'+esc(k)+'</div><div>'+tq+'個</div><b style="min-width:90px;text-align:right">'+m(ta)+'</b></div>'+rows+'</div>';}).join("");}
+function renderHist(){
+  var sum=0,cnt={},amt={},tc={};
+  S.sales.forEach(function(s){sum+=s.total;s.lines.forEach(function(l){var b=l.base||l.name;cnt[b]=(cnt[b]||0)+l.qty;amt[b]=(amt[b]||0)+l.qty*l.price;tc[b]=tc[b]||{};(l.tops||[]).forEach(function(n){tc[b][n]=(tc[b][n]||0)+l.qty;});});});
+  var per=Object.keys(cnt).map(function(k){return '<div class="line"><div class="n">'+esc(k)+'</div><div>'+cnt[k]+'個</div><b style="min-width:90px;text-align:right">'+m(amt[k])+'</b></div>'+Object.keys(tc[k]||{}).map(function(n){return '<div class="line" style="padding:4px 0 4px 24px;border:0"><div class="n muted">└ ＋'+esc(n)+'</div><div class="muted">'+tc[k][n]+'個</div></div>';}).join("");}).join("");
+  var tops="";per=perHtml(group());
+  var list=S.sales.slice().reverse().map(function(s){
+    var d=s.lines.map(function(l){return esc(l.base||l.name)+((l.tops&&l.tops.length)?'('+esc(l.tops.join("・"))+')':'')+"×"+l.qty;}).join("<br>");
+    return '<div class="line"><div class="n"><span class="muted">'+ts(s.t)+'</span> '+d+'</div><b>'+m(s.total)+'</b><button class="'+(arm==="s"+s.id?'danger':'sub')+'" data-ds="'+s.id+'">'+(arm==="s"+s.id?'本当に取消':'取消')+'</button></div>';}).join("");
+  $("hist").innerHTML='<div class="stats"><div class="stat"><small>売上合計</small><div>'+m(sum)+'</div></div><div class="stat"><small>会計件数</small><div>'+S.sales.length+'件</div></div><div class="stat"><small>客単価</small><div>'+m(S.sales.length?Math.round(sum/S.sales.length):0)+'</div></div></div>'+
+  '<div class="card"><b>商品別</b>'+(per||'<p class="muted">まだ売上がありません</p>')+'</div>'+
+  (tops?'<div class="card"><b>トッピング別</b>'+tops+'</div>':'')+
+  '<div class="card"><div class="row"><b style="flex:1">会計履歴</b><button class="sub" id="cp">集計をコピー</button><button class="'+(arm==="all"?'danger':'sub')+'" id="rs">'+(arm==="all"?'本当に全削除':'全履歴を削除')+'</button></div>'+(list||'<p class="muted">履歴なし</p>')+'</div>';
+}
+function renderSet(){
+  var cards=S.items.map(function(i){
+    var trs=i.tops.map(function(t){return '<div class="row tr"><input data-f="tname" data-i="'+i.id+'" data-tid="'+t.id+'" value="'+esc(t.name)+'"><input class="p" data-f="tprice" data-i="'+i.id+'" data-tid="'+t.id+'" inputmode="numeric" value="'+t.price+'"><button class="'+(arm==="t"+t.id?'danger':'sub')+'" data-dt="'+i.id+':'+t.id+'">'+(arm==="t"+t.id?'本当に削除':'削除')+'</button></div>';}).join("");
+    return '<div class="card"><div class="row"><input data-f="name" data-i="'+i.id+'" value="'+esc(i.name)+'"><input class="p" data-f="price" data-i="'+i.id+'" inputmode="numeric" value="'+i.price+'"><button class="'+(arm==="i"+i.id?'danger':'sub')+'" data-di="'+i.id+'">'+(arm==="i"+i.id?'本当に削除':'商品削除')+'</button></div>'+
+    '<div class="muted tr">トッピング(追加料金は0でも可)</div>'+trs+
+    '<div class="row tr"><input id="tn'+i.id+'" placeholder="トッピング名"><input class="p" id="tp'+i.id+'" inputmode="numeric" placeholder="追加料金"><button data-at="'+i.id+'" style="padding:10px 14px;font-weight:700">追加</button></div></div>';}).join("");
+  $("set").innerHTML='<div class="card"><b>店名</b><div class="row"><input id="shop" value="'+esc(S.shop)+'"></div><div class="muted">価格・追加料金はすべて円で入力します。</div></div>'+
+  cards+'<div class="card"><b>商品を追加</b><div class="row"><input id="nn" placeholder="新しい商品名"><input class="p" id="np" inputmode="numeric" placeholder="価格"><button class="big" id="add" style="width:auto;padding:12px 20px;font-size:16px">追加</button></div></div>'+
+  '<p class="muted">データはこのiPadのブラウザ内に保存されます。端末・店舗ごとに別管理です。</p>';
+}
+function show(){
+  ["reg","hist","set"].forEach(function(k){$(k).classList.toggle("hide",k!==tab);});
+  document.querySelectorAll(".tab").forEach(function(b){b.classList.toggle("on",b.dataset.tab===tab);});
+  $("title").textContent=S.shop;
+  if(tab==="reg")renderReg();else if(tab==="hist")renderHist();else renderSet();
+}
+function toast(id){lastId=id;var e=$("toast");e.innerHTML='会計しました<button data-undo="1">取り消す</button>';e.classList.remove("hide");clearTimeout(tt);tt=setTimeout(function(){e.classList.add("hide");},4000);}
+
+document.addEventListener("click",function(e){
+  var b=e.target.closest("button");if(!b)return;var d=b.dataset;
+  if(d.tab){tab=d.tab;arm=null;show();return;}
+  
+  if(d.p){var it=item(d.p);if(it.tops.length)pick={id:it.id,sel:[],qty:1};else addCart(it.id,[],1);renderReg();var sb=$("sel");if(sb&&it.tops.length)sb.scrollIntoView({block:"nearest"});return;}
+  if(d.st){var x0=Number(d.st),k0=pick.sel.indexOf(x0);if(k0>=0)pick.sel.splice(k0,1);else pick.sel.push(x0);renderReg();return;}
+  if(d.sq){pick.qty=Math.max(1,pick.qty+Number(d.sq));renderReg();return;}
+  if(d.sadd){addCart(pick.id,pick.sel,pick.qty);pick=null;renderReg();return;}
+  if(d.sx){pick=null;renderReg();return;}
+  if(d.ct){var q=d.ct.split(":"),cc=cart[q[0]],tid=Number(q[1]),ix=cc.tops.indexOf(tid);if(ix>=0)cc.tops.splice(ix,1);else cc.tops.push(tid);renderReg();return;}
+  if(d.tt){var x=Number(d.tt),k=mod.sel.indexOf(x);if(k>=0)mod.sel.splice(k,1);else mod.sel.push(x);renderMod();return;}
+  if(d.mq){mod.qty=Math.max(1,mod.qty+Number(d.mq));renderMod();return;}
+  if(d.madd){addCart(mod.id,mod.sel,mod.qty);closeMod();renderReg();return;}
+  if(d.mx){closeMod();return;}
+  if(d.cp){var c0=cart[d.cp];c0.qty++;renderReg();return;}
+  if(d.cm){cart[d.cm].qty--;if(cart[d.cm].qty<=0)cart.splice(d.cm,1);renderReg();return;}
+  if(b.id==="clr"){cart=[];renderReg();return;}
+  if(b.id==="go"){var lines=cart.map(function(c){var it=item(c.id);return{base:it.name,name:it.name,tops:topNames(it,c.tops),price:unitPrice(it,c.tops),qty:c.qty};});
+    var id=S.nid++;S.sales.push({id:id,t:Date.now(),lines:lines,total:total()});save();cart=[];renderReg();toast(id);return;}
+  if(d.undo){var us=S.sales.filter(function(s){return s.id===lastId;})[0];if(us)restore(us);S.sales=S.sales.filter(function(s){return s.id!==lastId;});save();$("toast").classList.add("hide");if(tab==="hist")renderHist();renderReg();return;}
+  if(d.ds){if(arm==="s"+d.ds){var ds0=S.sales.filter(function(s){return s.id==d.ds;})[0];if(ds0)restore(ds0);S.sales=S.sales.filter(function(s){return s.id!=d.ds;});arm=null;save();var e2=$("toast");e2.innerHTML='取消しました。選択をレジに戻しました<button data-tab="reg">レジへ</button>';e2.classList.remove("hide");clearTimeout(tt);tt=setTimeout(function(){e2.classList.add("hide");},5000);}else arm="s"+d.ds;renderHist();return;}
+  if(b.id==="rs"){if(arm==="all"){S.sales=[];arm=null;save();}else arm="all";renderHist();return;}
+  if(b.id==="cp"){var tx=S.shop+" 集計\n合計 "+m(S.sales.reduce(function(a,s){return a+s.total;},0))+" / "+S.sales.length+"件\n";var c={},tc={};S.sales.forEach(function(s){s.lines.forEach(function(l){var n=l.base||l.name;c[n]=(c[n]||0)+l.qty;tc[n]=tc[n]||{};(l.tops||[]).forEach(function(z){tc[n][z]=(tc[n][z]||0)+l.qty;});});});
+    var g=group();Object.keys(g).forEach(function(k){tx+="■"+k+"\n";Object.keys(g[k]).forEach(function(p){var o=g[k][p];tx+="  "+m(p)+" × "+o.q+"個 = "+m(p*o.q)+"\n";Object.keys(o.c).forEach(function(z){tx+="    "+z+" "+o.c[z]+"個\n";});});});
+    try{navigator.clipboard.writeText(tx);b.textContent="コピーしました";}catch(x){b.textContent="コピー不可";}return;}
+  if(d.di){if(arm==="i"+d.di){S.items=S.items.filter(function(i){return i.id!=d.di;});cart=cart.filter(function(c){return c.id!=d.di;});arm=null;save();}else arm="i"+d.di;renderSet();return;}
+  if(d.dt){var p=d.dt.split(":"),it2=item(p[0]);if(arm==="t"+p[1]){it2.tops=it2.tops.filter(function(t){return t.id!=p[1];});cart.forEach(function(c){c.tops=c.tops.filter(function(z){return z!=p[1];});});arm=null;save();}else arm="t"+p[1];renderSet();return;}
+  if(d.at){var n=$("tn"+d.at).value.trim(),pr=parseInt($("tp"+d.at).value,10)||0;if(n){item(d.at).tops.push({id:S.nid++,name:n,price:pr});save();renderSet();}return;}
+  if(b.id==="add"){var nm=$("nn").value.trim(),pp=parseInt($("np").value,10);if(nm&&pp>=0){S.items.push({id:S.nid++,name:nm,price:pp,tops:[]});save();renderSet();}return;}
+});
+document.addEventListener("input",function(e){var t=e.target,d=t.dataset;
+  if(t.id==="shop"){S.shop=t.value||"模擬店レジ";save();$("title").textContent=S.shop;return;}
+  if(t.id==="unit"){S.unit=t.value;save();return;}
+  if(!d.f)return;var it=item(d.i);if(!it)return;
+  if(d.f==="name")it.name=t.value;
+  else if(d.f==="price")it.price=parseInt(t.value,10)||0;
+  else{it.tops.forEach(function(x){if(x.id==d.tid){if(d.f==="tname")x.name=t.value;else x.price=parseInt(t.value,10)||0;}});}
+  save();
+});
+show();
+})();
+</script>
+</body>
+</html>
